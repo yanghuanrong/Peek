@@ -12,6 +12,7 @@ struct TranslationPanelView: View {
 
     @FocusState private var inputFocused: Bool
     @State private var hoverCopy = false
+    @StateObject private var speaker = Speaker()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -101,22 +102,36 @@ struct TranslationPanelView: View {
 
     private var inputArea: some View {
         VStack(alignment: .leading, spacing: 6) {
-            TextField("", text: $viewModel.inputText, axis: .vertical)
-                .textFieldStyle(.plain)
-                .font(.system(size: 16))
-                .lineLimit(1...4)
-                .focused($inputFocused)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 7)
-                .background(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(Color(nsColor: .textBackgroundColor))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
-                )
-                .onSubmit { viewModel.translate() }
+            HStack(alignment: .center, spacing: 4) {
+                TextField("", text: $viewModel.inputText, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 16))
+                    .lineLimit(1...4)
+                    .focused($inputFocused)
+                    .onSubmit { viewModel.translate() }
+
+                // 发音按钮：朗读输入内容；朗读中再点则停止
+                Button {
+                    speaker.speakOrStop(viewModel.inputText)
+                } label: {
+                    Image(systemName: speaker.isSpeaking ? "speaker.wave.2.fill" : "speaker.wave.2")
+                        .font(.system(size: 13))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(speaker.isSpeaking ? Color.accentColor : Color.secondary)
+                .disabled(viewModel.inputText.isEmpty)
+                .help("朗读输入内容")
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(Color(nsColor: .textBackgroundColor))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
+            )
 
             if viewModel.inputText.isEmpty {
                 Text("粘贴或输入要翻译的中英文内容…")

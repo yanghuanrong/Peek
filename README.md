@@ -137,7 +137,7 @@ Sources/Peek/
   HotKey/GlobalHotKeyManager.swift
   Window/FloatingPanel.swift
   Views/TranslationPanelView.swift / SettingsView.swift
-  Core/SettingsStore.swift / Language.swift / HTTPClient.swift / ClipboardService.swift
+  Core/SettingsStore.swift / Language.swift / HTTPClient.swift / ClipboardService.swift / Speaker.swift
 ```
 
 构建与工程：`Package.swift`、`build.sh`；Xcode 工程由 `scripts/generate_xcodeproj.rb` 生成（已 gitignore）。
