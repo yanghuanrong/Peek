@@ -157,9 +157,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showPanel() {
         viewModel.onHotkeyTriggered()
         panelController.show()
+        viewModel.startWatchingClipboard()
     }
 
     private func hidePanel() {
+        viewModel.stopWatchingClipboard()
         viewModel.onHide()
         panelController.hide()
     }

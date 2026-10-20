@@ -16,4 +16,9 @@ enum ClipboardService {
     static func currentText() -> String? {
         NSPasteboard.general.string(forType: .string)
     }
+
+    /// 剪贴板变更计数；每次内容变化 +1（macOS 无通知机制，靠比对它轮询）
+    static var changeCount: Int {
+        NSPasteboard.general.changeCount
+    }
 }

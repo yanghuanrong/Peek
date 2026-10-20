@@ -73,6 +73,42 @@ final class TranslationViewModel: ObservableObject {
         }
     }
 
+    // MARK: - 剪贴板监听（面板打开期间）
+
+    private var clipboardTimer: Timer?
+    /// 上次看到的剪贴板 changeCount；自己写入译文时也同步更新，避免自触发
+    private var lastChangeCount: Int = 0
+
+    /// 面板打开时开始监听；macOS 无剪贴板通知，按同行做法轮询 changeCount（仅面板可见期间，成本可忽略）
+    func startWatchingClipboard() {
+        stopWatchingClipboard()
+        lastChangeCount = ClipboardService.changeCount
+        clipboardTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.checkClipboardChanged()
+            }
+        }
+    }
+
+    func stopWatchingClipboard() {
+        clipboardTimer?.invalidate()
+        clipboardTimer = nil
+    }
+
+    private func checkClipboardChanged() {
+        guard settings.watchClipboard else { return }
+        let count = ClipboardService.changeCount
+        guard count != lastChangeCount else { return }
+        lastChangeCount = count
+
+        guard let text = ClipboardService.currentText(),
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              text != inputText else { return }
+
+        inputText = text
+        translator.translate(text)
+    }
+
     // MARK: - 翻译
 
     func translate() {
@@ -111,6 +147,7 @@ final class TranslationViewModel: ObservableObject {
         }
 
         ClipboardService.write(text)
+        lastChangeCount = ClipboardService.changeCount
         flashCopied()
         lastAction = .copied
     }
