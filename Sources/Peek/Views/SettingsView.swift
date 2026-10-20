@@ -109,6 +109,11 @@ struct SettingsView: View {
                     isOn: $settings.autoPasteClipboard
                 )
                 toggle(
+                    "监听剪贴板变化",
+                    detail: "面板打开时从剪贴板工具选词会自动填入",
+                    isOn: $settings.watchClipboard
+                )
+                toggle(
                     "翻译后自动复制",
                     detail: "出结果后自动写入剪贴板",
                     isOn: $settings.autoCopyResult

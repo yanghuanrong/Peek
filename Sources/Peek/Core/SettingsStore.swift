@@ -102,6 +102,10 @@ final class SettingsStore: ObservableObject {
     @Published var autoPasteClipboard: Bool {
         didSet { defaults.set(autoPasteClipboard, forKey: Keys.autoPaste) }
     }
+    /// 面板打开期间监听剪贴板变化（如从 Maccy 选词后自动填入）
+    @Published var watchClipboard: Bool {
+        didSet { defaults.set(watchClipboard, forKey: Keys.watchClipboard) }
+    }
     /// 翻译成功后自动写入剪贴板
     @Published var autoCopyResult: Bool {
         didSet { defaults.set(autoCopyResult, forKey: Keys.autoCopy) }
@@ -133,6 +137,7 @@ final class SettingsStore: ObservableObject {
         static let hotKeyModifiers = "hotkey.modifiers"
         static let hotKeyCode = "hotkey.code"
         static let autoPaste = "autoPasteClipboard"
+        static let watchClipboard = "watchClipboard"
         static let autoCopy = "autoCopyResult"
         static let hideOnBlur = "hideOnBlur"
         static let keepInput = "keepLastInput"
@@ -156,6 +161,7 @@ final class SettingsStore: ObservableObject {
         }
 
         autoPasteClipboard = defaults.object(forKey: Keys.autoPaste) as? Bool ?? true
+        watchClipboard = defaults.object(forKey: Keys.watchClipboard) as? Bool ?? true
         autoCopyResult = defaults.object(forKey: Keys.autoCopy) as? Bool ?? false
         hideOnBlur = defaults.object(forKey: Keys.hideOnBlur) as? Bool ?? true
         keepLastInput = defaults.object(forKey: Keys.keepInput) as? Bool ?? false
