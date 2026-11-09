@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import CoreText
 import ServiceManagement
 import Sparkle
 import SwiftUI
@@ -297,10 +298,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if settings.showMenuBarItem {
             guard statusItem == nil else { return }
             let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-            item.button?.image = NSImage(
-                systemSymbolName: "character.book.closed",
-                accessibilityDescription: "Peek"
-            )
+            item.button?.image = PeekIcon.templateImage()
             item.button?.image?.isTemplate = true
             item.menu = buildStatusMenu()
             statusItem = item

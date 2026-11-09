@@ -105,51 +105,121 @@ if [ ! -f "Resources/AppIcon.icns" ]; then
     # 用SF Symbol 渲染图标为 PNG
     cat > /tmp/peek_icon.swift <<'SWIFT'
 import AppKit
+import CoreGraphics
 import Foundation
 
-let size = NSSize(width: 1024, height: 1024)
-let image = NSImage(size: size)
-image.lockFocus()
+guard CommandLine.arguments.count > 1 else { fputs("usage: peek_icon <png>\n", stderr); exit(1) }
+let S: CGFloat = 1024
+let cs = CGColorSpaceCreateDeviceRGB()
+let ctx = CGContext(
+    data: nil, width: Int(S), height: Int(S), bitsPerComponent: 8, bytesPerRow: 0, space: cs,
+    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+)!
+ctx.setAllowsAntialiasing(true)
+ctx.interpolationQuality = .high
+ctx.translateBy(x: 0, y: S)
+ctx.scaleBy(x: 1, y: -1)
 
-let ctx = NSGraphicsContext.current!.cgContext
-// 圆角背景渐变
-let colors = [
-    NSColor(srgbRed: 0.24, green: 0.52, blue: 0.98, alpha: 1).cgColor,
-    NSColor(srgbRed: 0.42, green: 0.32, blue: 0.92, alpha: 1).cgColor
-] as CFArray
-if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 1]) {
-    ctx.drawLinearGradient(gradient,
-                           start: CGPoint(x: 0, y: 1024),
-                           end: CGPoint(x: 1024, y: 0),
-                           options: [])
+func color(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> CGColor {
+    CGColor(colorSpace: cs, components: [r, g, b, a])!
 }
-let rect = NSRect(x: 0, y: 0, width: 1024, height: 1024)
-let path = NSBezierPath(roundedRect: rect, xRadius: 220, yRadius: 220)
-path.addClip()
 
-// 书本符号
-let config = NSImage.SymbolConfiguration(pointSize: 460, weight: .regular)
-if let symbol = NSImage(systemSymbolName: "character.book.closed.fill", accessibilityDescription: nil)?
-    .withSymbolConfiguration(config) {
-    let tinted = NSImage(size: symbol.size, flipped: false) { rect in
-        symbol.draw(in: rect)
-        NSColor.white.set()
-        rect.fill(using: .sourceAtop)
-        return true
+func squircle(_ rect: CGRect, radius: CGFloat) -> CGPath {
+    let p = CGMutablePath()
+    let r = min(radius, min(rect.width, rect.height) / 2)
+    let k: CGFloat = 0.5522847498
+    let c = r * k
+    let x0 = rect.minX, y0 = rect.minY, x1 = rect.maxX, y1 = rect.maxY
+    p.move(to: CGPoint(x: x0 + r, y: y0))
+    p.addLine(to: CGPoint(x: x1 - r, y: y0))
+    p.addCurve(to: CGPoint(x: x1, y: y0 + r), control1: CGPoint(x: x1 - r + c, y: y0), control2: CGPoint(x: x1, y: y0 + r - c))
+    p.addLine(to: CGPoint(x: x1, y: y1 - r))
+    p.addCurve(to: CGPoint(x: x1 - r, y: y1), control1: CGPoint(x: x1, y: y1 - r + c), control2: CGPoint(x: x1 - r + c, y: y1))
+    p.addLine(to: CGPoint(x: x0 + r, y: y1))
+    p.addCurve(to: CGPoint(x: x0, y: y1 - r), control1: CGPoint(x: x0 + r - c, y: y1), control2: CGPoint(x: x0, y: y1 - r + c))
+    p.addLine(to: CGPoint(x: x0, y: y0 + r))
+    p.addCurve(to: CGPoint(x: x0 + r, y: y0), control1: CGPoint(x: x0, y: y0 + r - c), control2: CGPoint(x: x0 + r - c, y: y0))
+    p.closeSubpath()
+    return p
+}
+
+// ---- 背景贴片：Big Sur 网格，1024 画布内 824x824 居中，四边留 100px ----
+let tile = CGRect(x: 100, y: 100, width: 824, height: 824)
+let tilePath = squircle(tile, radius: 185)
+ctx.addPath(tilePath)
+ctx.clip()
+// 扁平对角渐变
+ctx.drawLinearGradient(
+    CGGradient(colorsSpace: cs, colors: [color(0.32, 0.58, 1.0), color(0.42, 0.30, 0.96)] as CFArray, locations: [0, 1])!,
+    start: CGPoint(x: 100, y: 924), end: CGPoint(x: 924, y: 100), options: [])
+ctx.restoreGState()
+
+// ---- 书本几何（屏幕坐标，y 向下）----
+let cover = CGRect(x: 322, y: 232, width: 380, height: 560)
+let cr: CGFloat = 62
+let spineW: CGFloat = 38
+
+// 封面：纯白扁平
+ctx.saveGState()
+ctx.addPath(squircle(cover, radius: cr))
+ctx.setFillColor(color(1, 1, 1))
+ctx.fillPath()
+// 书脊（限制在封面内）
+ctx.saveGState()
+ctx.addPath(squircle(cover, radius: cr))
+ctx.clip()
+ctx.drawLinearGradient(
+    CGGradient(colorsSpace: cs, colors: [color(0.82, 0.86, 0.96), color(1, 1, 1)] as CFArray, locations: [0, 1])!,
+    start: CGPoint(x: cover.minX, y: 0), end: CGPoint(x: cover.minX + spineW + 22, y: 0), options: [])
+// 书脊凹槽
+ctx.setStrokeColor(color(0.66, 0.72, 0.90))
+ctx.setLineWidth(4.5)
+ctx.setLineCap(.round)
+ctx.move(to: CGPoint(x: cover.minX + spineW, y: cover.minY + cr * 0.7))
+ctx.addLine(to: CGPoint(x: cover.minX + spineW, y: cover.maxY - cr * 0.7))
+ctx.strokePath()
+ctx.restoreGState()
+// 页缘线：两条圆头短线
+ctx.setStrokeColor(color(0.76, 0.81, 0.94))
+ctx.setLineWidth(8)
+for i in 0...1 {
+    let yy = cover.maxY - 96 - CGFloat(i) * 24
+    ctx.move(to: CGPoint(x: cover.minX + spineW + 34, y: yy))
+    ctx.addLine(to: CGPoint(x: cover.maxX - 54, y: yy))
+}
+ctx.strokePath()
+ctx.restoreGState()
+
+// ---- 字母 A ----
+func glyph(_ s: String, size: CGFloat, weight: NSFont.Weight) -> CGPath {
+    let font = NSFont.systemFont(ofSize: size, weight: weight)
+    var u = s.utf16.first!
+    var g = CTFontCreatePathForGlyph(font, CTFontGetGlyphWithName(font, s as CFString), nil)
+    if g == nil {
+        var glyph = CGGlyph()
+        CTFontGetGlyphsForCharacters(font, &u, &glyph, 1)
+        g = CTFontCreatePathForGlyph(font, glyph, nil)
     }
-    tinted.draw(in: NSRect(x: (1024 - tinted.size.width) / 2,
-                           y: (1024 - tinted.size.height) / 2,
-                           width: tinted.size.width,
-                           height: tinted.size.height))
+    return g!
 }
+let aPath = glyph("A", size: 300, weight: .bold)
+let b = aPath.boundingBox
+let target = CGRect(x: cover.minX + spineW + 30, y: cover.minY + 128, width: cover.width - spineW - 88, height: 280)
+let sc = min(target.width / b.width, target.height / b.height)
+var t = CGAffineTransform(translationX: target.midX, y: target.midY)
+    .scaledBy(x: sc, y: -sc)
+    .translatedBy(x: -(b.midX), y: -(b.midY))
+let placed = aPath.copy(using: &t)!
+// A：扁平靛蓝
+ctx.addPath(placed)
+ctx.setFillColor(color(0.35, 0.33, 0.88))
+ctx.fillPath()
 
-image.unlockFocus()
-
-if let tiff = image.tiffRepresentation,
-   let bitmap = NSBitmapImageRep(data: tiff),
-   let png = bitmap.representation(using: .png, properties: [:]) {
-    try! png.write(to: URL(fileURLWithPath: CommandLine.arguments[1]))
-}
+// ---- 导出 ----
+let img = ctx.makeImage()!
+let rep = NSBitmapImageRep(cgImage: img)
+let png = rep.representation(using: .png, properties: [:])!
+try! png.write(to: URL(fileURLWithPath: CommandLine.arguments[1]))
 SWIFT
 
     if swiftc -O /tmp/peek_icon.swift -o /tmp/peek_icon 2>/dev/null; then

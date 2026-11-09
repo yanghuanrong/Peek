@@ -52,8 +52,8 @@ struct TranslationPanelView: View {
 
     private var titleBar: some View {
         HStack(spacing: 8) {
-            Image(systemName: "character.book.closed.fill")
-                .font(.system(size: 12))
+            Image(nsImage: PeekIcon.templateImage(pointSize: 12))
+                .renderingMode(.template)
                 .foregroundStyle(.tint)
 
             Text("Peek")

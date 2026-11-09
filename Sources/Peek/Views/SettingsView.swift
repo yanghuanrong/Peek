@@ -31,8 +31,8 @@ struct SettingsView: View {
 
     private var header: some View {
         HStack {
-            Image(systemName: "character.book.closed.fill")
-                .font(.system(size: 15))
+            Image(nsImage: PeekIcon.templateImage(pointSize: 15))
+                .renderingMode(.template)
                 .foregroundStyle(.tint)
             Text("Peek 设置")
                 .font(.system(size: 14, weight: .semibold))
