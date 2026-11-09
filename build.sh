@@ -1,13 +1,26 @@
 #!/bin/bash
 # 构建 Peek.app
 # 用法：
-#   ./build.sh          # release 构建 + 打包
-#   ./build.sh debug    # debug 构建 + 打包
+#   ./build.sh          # release 构建 + 打包（仅 .app，不打 DMG）
+#   ./build.sh dmg      # release 构建 + 额外打包 DMG（分发用）
+#   ./build.sh debug    # debug 构建 + 生成 Xcode 工程
 
 set -euo pipefail
 
 CONFIG="${1:-release}"
+# ./build.sh        -> 仅构建 Peek.app（默认，不挂载任何卷）
+# ./build.sh dmg    -> 额外打包 DMG（分发用）
+# ./build.sh debug  -> debug 构建 + 生成 Xcode 工程
+MAKE_DMG=false
+if [ "$CONFIG" = "dmg" ]; then
+    CONFIG="release"
+    MAKE_DMG=true
+fi
 cd "$(dirname "$0")"
+
+# 清理历史遗留的挂载卷（曾手动打开过 DMG 时会残留）
+hdiutil detach /Volumes/Peek >/dev/null 2>&1 || true
+hdiutil detach /Volumes/Peek >/dev/null 2>&1 || true
 
 APP_NAME="Peek"
 BUNDLE_ID="com.peek.translate"
@@ -251,23 +264,25 @@ codesign --force --sign - --timestamp=none "${APP_DIR}" 2>/dev/null || {
     echo "    签名跳过（不影响本机运行）"
 }
 
-echo "==> 打包 DMG"
-DMG_PATH="${BUILD_DIR}/Peek-${VERSION}.dmg"
-STAGING="${BUILD_DIR}/dmg-staging"
-rm -rf "${STAGING}" "${DMG_PATH}"
-mkdir -p "${STAGING}"
-cp -R "${APP_DIR}" "${STAGING}/"
-# 拖拽安装用的 /Applications 快捷方式
-ln -s /Applications "${STAGING}/Applications"
-hdiutil create -volname "${APP_NAME}" \
-    -srcfolder "${STAGING}" \
-    -format UDZO \
-    "${DMG_PATH}" -ov >/dev/null
-rm -rf "${STAGING}"
+if [ "$MAKE_DMG" = true ]; then
+    echo "==> 打包 DMG"
+    DMG_PATH="${BUILD_DIR}/Peek-${VERSION}.dmg"
+    STAGING="${BUILD_DIR}/dmg-staging"
+    rm -rf "${STAGING}" "${DMG_PATH}"
+    mkdir -p "${STAGING}"
+    cp -R "${APP_DIR}" "${STAGING}/"
+    # 拖拽安装用的 /Applications 快捷方式
+    ln -s /Applications "${STAGING}/Applications"
+    hdiutil create -volname "${APP_NAME}" \
+        -srcfolder "${STAGING}" \
+        -format UDZO \
+        "${DMG_PATH}" -ov >/dev/null
+    rm -rf "${STAGING}"
+    echo "✅ DMG 打包完成: ${DMG_PATH}"
+fi
 
 echo ""
 echo "✅ 构建完成: ${APP_DIR}"
-echo "✅ DMG 打包完成: ${DMG_PATH}"
 echo ""
 echo "运行方式："
 echo "  open ${APP_DIR}                # 启动"
