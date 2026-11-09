@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/images/icon.png" width="160" alt="Peek"/>
+
 # Peek
 
 > 📖 一个 macOS 划词翻译小工具
