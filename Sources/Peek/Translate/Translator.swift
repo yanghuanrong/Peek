@@ -10,6 +10,7 @@ final class Translator: ObservableObject {
         case youdao
         case google
         case mymemory
+        case deepl
 
         var id: String { rawValue }
 
@@ -19,6 +20,7 @@ final class Translator: ObservableObject {
             case .youdao: return "有道词典"
             case .google: return "谷歌翻译"
             case .mymemory: return "MyMemory"
+            case .deepl: return "DeepL"
             }
         }
 
@@ -28,6 +30,7 @@ final class Translator: ObservableObject {
             case .youdao: return "免密钥 · 释义音标例句齐全"
             case .google: return "免密钥 · 整句质量最好，需系统代理"
             case .mymemory: return "免密钥 · 长句翻译稳定"
+            case .deepl: return "官方 API · 500K 字符/月免费，需在高级设置填 Key"
             }
         }
     }
@@ -164,6 +167,8 @@ final class Translator: ObservableObject {
     private func engineChain(for text: String) -> [any TranslationEngine] {
         let isWord = LanguageDetector.looksLikeSingleWord(text)
         let choice = settings.engine
+        let deepL = { DeepLEngine(apiKey: self.settings.deeplAPIKey) }
+        let hasDeepL = !settings.deeplAPIKey.trimmingCharacters(in: .whitespaces).isEmpty
 
         switch choice {
         case .youdao:
@@ -172,14 +177,18 @@ final class Translator: ObservableObject {
             return [GoogleEngine()]
         case .mymemory:
             return [MyMemoryEngine()]
+        case .deepl:
+            return [deepL()]
         case .auto:
             var chain: [any TranslationEngine] = []
-            // 单词优先词典引擎；整句优先谷歌，MyMemory 兑底
+            // 单词优先词典引擎；整句优先官方 DeepL（已配 Key），谷歌次之，MyMemory 兑底
             if isWord {
                 chain.append(YoudaoEngine())
+                if hasDeepL { chain.append(deepL()) }
                 chain.append(GoogleEngine())
                 chain.append(MyMemoryEngine())
             } else {
+                if hasDeepL { chain.append(deepL()) }
                 chain.append(GoogleEngine())
                 chain.append(MyMemoryEngine())
                 chain.append(YoudaoEngine())

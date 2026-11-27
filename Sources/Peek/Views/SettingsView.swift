@@ -147,6 +147,11 @@ struct SettingsView: View {
     private var advancedSection: some View {
         section("高级（可选）", icon: "cpu") {
             VStack(alignment: .leading, spacing: 8) {
+                Text("DeepL API Key（官方免费版，500K 字符/月）")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                field("", text: $settings.deeplAPIKey, placeholder: "在 deepl.com 免费注册获取，以 :fx 结尾", isSecure: true)
+
                 Text("MyMemory 邮箱（可选，用于提升免费额度）")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)

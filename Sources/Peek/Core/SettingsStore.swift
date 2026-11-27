@@ -130,6 +130,10 @@ final class SettingsStore: ObservableObject {
         didSet { defaults.set(myMemoryEmail, forKey: Keys.myMemoryEmail) }
     }
 
+    @Published var deeplAPIKey: String {
+        didSet { defaults.set(deeplAPIKey, forKey: Keys.deeplAPIKey) }
+    }
+
     private let defaults: UserDefaults
 
     private enum Keys {
@@ -144,6 +148,7 @@ final class SettingsStore: ObservableObject {
         static let launchAtLogin = "launchAtLogin"
         static let showMenuBar = "showMenuBarItem"
         static let myMemoryEmail = "mymemory.email"
+        static let deeplAPIKey = "deepl.apiKey"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -169,5 +174,6 @@ final class SettingsStore: ObservableObject {
         showMenuBarItem = defaults.object(forKey: Keys.showMenuBar) as? Bool ?? true
 
         myMemoryEmail = defaults.string(forKey: Keys.myMemoryEmail) ?? ""
+        deeplAPIKey = defaults.string(forKey: Keys.deeplAPIKey) ?? ""
     }
 }
